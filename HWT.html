@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework Tracker</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=DM+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    .checkbox-custom {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #6366f1;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .checkbox-custom:checked {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-color: #6366f1;
+    }
+    .checkbox-custom:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .checkbox-custom:hover {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+    .subject-tag {
+      transition: all 0.2s ease;
+    }
+    .subject-tag:hover {
+      transform: translateY(-2px);
+    }
+    .day-card {
+      transition: all 0.3s ease;
+    }
+    .day-card:hover {
+      transform: translateY(-4px);
+    }
+    .completed-task {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);">
+   <div class="max-w-6xl mx-auto px-4 py-8"><!-- Header -->
+    <header class="text-center mb-8">
+     <h1 id="main-title" class="text-4xl font-bold mb-2" style="font-family: 'Space Grotesk', sans-serif; color: #f8fafc;">📚 Homework Tracker</h1>
+     <p class="text-lg" style="color: #94a3b8;">Track your assignments across all subjects</p>
+    </header><!-- Subject Tags -->
+    <section class="mb-10">
+     <h2 class="text-xl font-semibold mb-4" style="font-family: 'Space Grotesk', sans-serif; color: #e2e8f0;">Your Subjects</h2>
+     <div id="subject-tags" class="flex flex-wrap gap-3"><!-- Subject tags will be populated by JavaScript -->
+     </div>
+    </section><!-- Weekly Schedule -->
+    <section>
+     <h2 class="text-xl font-semibold mb-4" style="font-family: 'Space Grotesk', sans-serif; color: #e2e8f0;">Weekly Schedule</h2>
+     <div id="schedule-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"><!-- Schedule cards will be populated by JavaScript -->
+     </div>
+    </section><!-- Progress Bar -->
+    <section class="mt-8 p-6 rounded-2xl" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+     <div class="flex justify-between items-center mb-3"><span class="font-semibold" style="font-family: 'Space Grotesk', sans-serif; color: #e2e8f0;">Weekly Progress</span> <span id="progress-text" class="text-sm font-medium" style="color: #a5b4fc;">0 / 0 completed</span>
+     </div>
+     <div class="w-full h-4 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.1);">
+      <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7); width: 0%;"></div>
+     </div>
+    </section>
+   </div>
+  </div>
+  <script>
+    // Reference data - schedule structure
+    const schedule = {
+      Monday: ['English', 'Business Management', 'Lunch', 'Computer Science', 'Career Management'],
+      Tuesday: ['Literature', 'Mathematics', 'TOK', 'Lunch', 'CAS'],
+      Wednesday: ['English', 'Computer Science', 'Literature', 'Lunch', 'Biology'],
+      Thursday: ['Literature', 'Mathematics', 'TOK', 'Lunch', 'Computer Science'],
+      Friday: ['Physical Exercise', 'Extended Essay', 'Biology', 'Lunch', 'Business Management']
+    };
+
+    // All unique subjects (excluding Lunch)
+    const allSubjects = [...new Set(Object.values(schedule).flat())].filter(s => s !== 'Lunch').sort();
+
+    // Subject colors
+    const subjectColors = {
+      'English': '#ef4444',
+      'Business Management': '#f97316',
+      'Computer Science': '#22c55e',
+      'Career Management': '#06b6d4',
+      'Literature': '#8b5cf6',
+      'Mathematics': '#3b82f6',
+      'TOK': '#ec4899',
+      'CAS': '#14b8a6',
+      'Biology': '#84cc16',
+      'Physical Exercise': '#f59e0b',
+      'Extended Essay': '#6366f1'
+    };
+
+    // Default config
+    const defaultConfig = {
+      tracker_title: '📚 Homework Tracker',
+      background_color: '#0f0f23',
+      surface_color: '#1e1e3f',
+      text_color: '#f8fafc',
+      primary_action: '#6366f1',
+      secondary_action: '#8b5cf6',
+      font_family: 'Space Grotesk',
+      font_size: 16
+    };
+
+    let currentData = [];
+    let config = { ...defaultConfig };
+
+    // Initialize subject tags
+    function renderSubjectTags() {
+      const container = document.getElementById('subject-tags');
+      container.innerHTML = allSubjects.map(subject => `
+        <span class="subject-tag px-4 py-2 rounded-full text-sm font-medium cursor-default" 
+              style="background: ${subjectColors[subject]}20; color: ${subjectColors[subject]}; border: 1px solid ${subjectColors[subject]}40; font-family: 'DM Sans', sans-serif;">
+          ${subject}
+        </span>
+      `).join('');
+    }
+
+    // Render schedule grid
+    function renderSchedule() {
+      const container = document.getElementById('schedule-grid');
+      const dayColors = {
+        Monday: '#ef4444',
+        Tuesday: '#f97316',
+        Wednesday: '#22c55e',
+        Thursday: '#3b82f6',
+        Friday: '#8b5cf6'
+      };
+
+      container.innerHTML = Object.entries(schedule).map(([day, subjects]) => `
+        <div class="day-card p-5 rounded-2xl" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+          <h3 class="text-lg font-bold mb-4 pb-2 border-b" style="font-family: 'Space Grotesk', sans-serif; color: ${dayColors[day]}; border-color: ${dayColors[day]}40;">
+            ${day}
+          </h3>
+          <div class="space-y-3">
+            ${subjects.map((subject, index) => {
+              if (subject === 'Lunch') {
+                return `
+                  <div class="flex items-center gap-3 py-2 px-3 rounded-lg" style="background: rgba(255,255,255,0.03);">
+                    <span class="text-lg">🍽️</span>
+                    <span class="text-sm" style="color: #64748b; font-family: 'DM Sans', sans-serif;">Lunch Break</span>
+                  </div>
+                `;
+              }
+              const taskId = `${day}-${index}`;
+              const isCompleted = currentData.find(d => d.day === day && d.subject === subject)?.completed || false;
+              return `
+                <label class="flex items-center gap-3 py-2 px-3 rounded-lg cursor-pointer hover:bg-white/5 transition-colors" data-task-id="${taskId}">
+                  <input type="checkbox" 
+                         class="checkbox-custom" 
+                         data-day="${day}" 
+                         data-subject="${subject}"
+                         ${isCompleted ? 'checked' : ''}
+                         onchange="handleCheckboxChange(this)">
+                  <span class="text-sm flex-1 ${isCompleted ? 'completed-task' : ''}" style="color: #e2e8f0; font-family: 'DM Sans', sans-serif;">
+                    ${subject}
+                  </span>
+                  <span class="w-2 h-2 rounded-full" style="background: ${subjectColors[subject]};"></span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update progress bar
+    function updateProgress() {
+      const totalTasks = Object.values(schedule).flat().filter(s => s !== 'Lunch').length;
+      const completedTasks = currentData.filter(d => d.completed).length;
+      const percentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+      document.getElementById('progress-bar').style.width = `${percentage}%`;
+      document.getElementById('progress-text').textContent = `${completedTasks} / ${totalTasks} completed`;
+    }
+
+    // Handle checkbox changes
+    async function handleCheckboxChange(checkbox) {
+      const day = checkbox.dataset.day;
+      const subject = checkbox.dataset.subject;
+      const isChecked = checkbox.checked;
+
+      // Update visual state immediately
+      const label = checkbox.closest('label');
+      const textSpan = label.querySelector('span.text-sm');
+      if (isChecked) {
+        textSpan.classList.add('completed-task');
+      } else {
+        textSpan.classList.remove('completed-task');
+      }
+
+      // Find existing record
+      const existingRecord = currentData.find(d => d.day === day && d.subject === subject);
+
+      checkbox.disabled = true;
+
+      try {
+        if (existingRecord) {
+          // Update existing record
+          const result = await window.dataSdk.update({
+            ...existingRecord,
+            completed: isChecked
+          });
+          if (!result.isOk) {
+            // Revert on error
+            checkbox.checked = !isChecked;
+            textSpan.classList.toggle('completed-task');
+          }
+        } else if (isChecked) {
+          // Create new record only when checking
+          if (currentData.length >= 999) {
+            checkbox.checked = false;
+            textSpan.classList.remove('completed-task');
+            showToast('Maximum records reached. Please uncheck some items first.');
+            return;
+          }
+          const result = await window.dataSdk.create({
+            day: day,
+            subject: subject,
+            completed: true
+          });
+          if (!result.isOk) {
+            checkbox.checked = false;
+            textSpan.classList.remove('completed-task');
+          }
+        }
+      } finally {
+        checkbox.disabled = false;
+      }
+    }
+
+    // Toast notification
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-xl text-white font-medium z-50';
+      toast.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      toast.style.fontFamily = "'DM Sans', sans-serif";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Data handler
+    const dataHandler = {
+      onDataChanged(data) {
+        currentData = data;
+        // Update checkboxes without rebuilding DOM
+        Object.entries(schedule).forEach(([day, subjects]) => {
+          subjects.forEach((subject, index) => {
+            if (subject === 'Lunch') return;
+            const checkbox = document.querySelector(`input[data-day="${day}"][data-subject="${subject}"]`);
+            if (checkbox) {
+              const record = data.find(d => d.day === day && d.subject === subject);
+              const isCompleted = record?.completed || false;
+              checkbox.checked = isCompleted;
+              const textSpan = checkbox.closest('label').querySelector('span.text-sm');
+              if (isCompleted) {
+                textSpan.classList.add('completed-task');
+              } else {
+                textSpan.classList.remove('completed-task');
+              }
+            }
+          });
+        });
+        updateProgress();
+      }
+    };
+
+    // Config change handler
+    async function onConfigChange(cfg) {
+      config = { ...defaultConfig, ...cfg };
+      
+      const title = document.getElementById('main-title');
+      if (title) {
+        title.textContent = config.tracker_title || defaultConfig.tracker_title;
+        title.style.fontFamily = `${config.font_family || defaultConfig.font_family}, sans-serif`;
+        title.style.fontSize = `${(config.font_size || defaultConfig.font_size) * 2.5}px`;
+        title.style.color = config.text_color || defaultConfig.text_color;
+      }
+
+      const app = document.getElementById('app');
+      if (app) {
+        app.style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, ${config.surface_color || defaultConfig.surface_color} 100%)`;
+      }
+    }
+
+    // Initialize
+    async function init() {
+      renderSubjectTags();
+      renderSchedule();
+      updateProgress();
+
+      // Initialize Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (cfg) => ({
+            recolorables: [
+              {
+                get: () => cfg.background_color || defaultConfig.background_color,
+                set: (v) => { cfg.background_color = v; window.elementSdk.setConfig({ background_color: v }); }
+              },
+              {
+                get: () => cfg.surface_color || defaultConfig.surface_color,
+                set: (v) => { cfg.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); }
+              },
+              {
+                get: () => cfg.text_color || defaultConfig.text_color,
+                set: (v) => { cfg.text_color = v; window.elementSdk.setConfig({ text_color: v }); }
+              },
+              {
+                get: () => cfg.primary_action || defaultConfig.primary_action,
+                set: (v) => { cfg.primary_action = v; window.elementSdk.setConfig({ primary_action: v }); }
+              },
+              {
+                get: () => cfg.secondary_action || defaultConfig.secondary_action,
+                set: (v) => { cfg.secondary_action = v; window.elementSdk.setConfig({ secondary_action: v }); }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => cfg.font_family || defaultConfig.font_family,
+              set: (v) => { cfg.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+            },
+            fontSizeable: {
+              get: () => cfg.font_size || defaultConfig.font_size,
+              set: (v) => { cfg.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+            }
+          }),
+          mapToEditPanelValues: (cfg) => new Map([
+            ['tracker_title', cfg.tracker_title || defaultConfig.tracker_title]
+          ])
+        });
+      }
+
+      // Initialize Data SDK
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to initialize data SDK');
+        }
+      }
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d3d2a4c10dac368',t:'MTc3MjA4NTAzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
