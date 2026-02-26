@@ -88,7 +88,7 @@
     // Reference data - schedule structure
     const schedule = {
       Monday: ['English', 'Business Management', 'Lunch', 'CAS', 'Career Management'],
-      Tuesday: ['Literature', 'Mathematics', 'TOK', 'Lunch', 'English'],
+      Tuesday: ['Literature', 'Mathematics', 'TOK', 'Lunch', 'CAS'],
       Wednesday: ['English', 'Computer Science', 'Literature', 'Lunch', 'Biology'],
       Thursday: ['Literature', 'Mathematics', 'TOK', 'Lunch', 'Computer Science'],
       Friday: ['Physical Exercise', 'Extended Essay', 'Biology', 'Lunch', 'Business Management', 'CAS']
@@ -268,14 +268,15 @@
         currentData = data;
         // Update checkboxes without rebuilding DOM
         Object.entries(schedule).forEach(([day, subjects]) => {
-          subjects.forEach((subject, index) => {
+          subjects.forEach((subject) => {
             if (subject === 'Lunch') return;
             const checkbox = document.querySelector(`input[data-day="${day}"][data-subject="${subject}"]`);
             if (checkbox) {
               const record = data.find(d => d.day === day && d.subject === subject);
               const isCompleted = record?.completed || false;
               checkbox.checked = isCompleted;
-              const textSpan = checkbox.closest('label').querySelector('span.text-sm');
+              const label = checkbox.closest('label');
+              const textSpan = label.querySelector('span.text-sm');
               if (isCompleted) {
                 textSpan.classList.add('completed-task');
               } else {
@@ -367,5 +368,5 @@
 
     init();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d3d4fa30654c368',t:'MTc3MjA4NjU1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d3d657512bbccea',t:'MTc3MjA4NzQ1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
